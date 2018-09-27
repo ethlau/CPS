@@ -1,0 +1,51 @@
+HOW TO USE 
+
+-------------------------------------------------------------------
+
+The main program here is:
+
+./Flender_XSB_profile/save_xl.cpp
+
+This enables us to preserve the Fourier components of X-ray emission from individual halos as a function of halo mass and redshift.
+To run this code, you need the input parameter file (please see ./Flender_XSB_profile/param_fid for example).
+When using the input file of param_fid, you have the output file named xl.dat which contains the Fourier components of X-ray emission.
+
+Similarly, you need to preserve the Fourier components of compoton y in advance with:
+
+./Flender_pressure_profile/save_yl.cpp
+
+Then, you can move to the computation of power spectra among lensing, Compton-y map and X-ray surface brightness with
+
+./cross_power/halo_model.C.
+
+To run this code, you need the output files from ./Flender_XSB_profile/save_xl.cpp and ./Flender_pressure_profile/save_yl.cpp as mentioned in above.
+Also, you have to tell the input cosmological paramaters (Omega_m0, w_DE, and H_0) and corresponding linear matter power spectrum,
+i.e.
+
+cd cross_corr
+./halo_model test.cl ../Flender_XSB_profile/xl.dat ../Flender_pressure_profile/yl.dat ../input_pk/wmap9_fid_matterpower_z0.dat 0.279 -1 0.70 0 z_source
+
+where z_source is the source redshift in lening. Then you have the output file of test.cl showing the angular power spectrum of X-ray surface brightness.
+
+For fiducial case, I assume the WMAP9 cosmological paramaters for a flat LCDM model:
+
+- H0 = 70.0 km/s/Mpc
+- Omega_m0 = 0.2790
+- Omega_b0 = 0.0461 
+- w_DE     = -1.000
+- Omega_K  = 0.0000 
+- n_s      = 0.9720
+
+and the linear matter power spectrum is obtained from CAMB.
+
+If you want to change cosmological model, you have to modify the input file for ./Flender_XSB_profile/save_xl.cpp and  ./Flender_pressure_profile/save_yl.cpp
+and reset the Fourier components of X-ray emission and compton y.
+
+Please let me know if you have any questions.
+
+-------------------------------------------------------------------
+
+July 10, 2018
+Masato Shirasaki
+National Astronomical Observatory of Japan
+masato.shirasaki@nao.ac.jp

@@ -7,8 +7,8 @@
 #include "Apec/Apec.h"
 
 double tarray[ntmax]; //keV
-double zarray[nzmax]; //Solar unit
-double rarray[nrmax];
+double zarray[nzmax]; //Solar unit metallicity
+double rarray[nrmax]; //redshift
 double lambda_table[ntmax][nrmax];
 double tres, zres, eres, rres;
 double keV2erg = 1.602177e-9;
@@ -94,17 +94,20 @@ void set_lambda_table ( double tarray[ntmax], double rarray[nrmax], double lambd
 	//metal = zarray[j];
 	metal = ABUNDANCE;
 	redshift = rarray[j];
-	//spec is in units of photons cm^3/s/bin  in receiver's frame
-	//note that the photon arrival rate is already redshifted
+	//spec is in units of photons cm^3/s/bin in receiver's frame
 	//ebin is already in receiver's frame
-	//still need to redshift photon energy when converting from photon counts to flux
+	//still need to redshift photon energy when converting from photon counts to energy
 	apec ( ebin, ne, metal, temp, redshift, spec );
 	lambda = 0.0;
+        
 	for (ie = 0; ie < nemax; ie++) {
 	  //printf("%e", spec[ie]);
 	  //lambda += spec[ie];
 	  //photons -> ergs
-	  lambda += spec[ie]*(0.5*(ebin[ie]+ebin[ie+1]))*keV2erg/(1.+redshift);
+	  double e;
+          e = (0.5*(ebin[ie]+ebin[ie+1]));
+	  lambda += spec[ie]*e*keV2erg;
+          //printf("e, lambda = %e, %e\n",e, lambda);
 	}
 	//printf("temp, z, lambda = %e %f %e\n", temp, redshift, lambda);
             

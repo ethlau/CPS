@@ -5,7 +5,7 @@
 #define nemax           100
 #define emin		0.5
 #define emax		2.0
-#define ntmax		300
+#define ntmax		100
 #define tmin		0.01
 #define tmax		30.0
 #define nzmax		10

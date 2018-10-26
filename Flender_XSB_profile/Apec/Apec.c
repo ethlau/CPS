@@ -85,7 +85,7 @@ void apec ( double *ebins, int nbins, double abun, double temp, double redshift,
      
     for ( i = 0; i < nbins; i++) {
         //redshifting spectrum to account for time dilation in photon arrival rate 1/dt 
-        // spec[i] = spec[i]/(1.0+redshift);   
+        //spec[i] = spec[i]/(1.0+redshift);   
         spec_sum += spec[i];
     }
     

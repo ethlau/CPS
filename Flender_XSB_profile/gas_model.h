@@ -767,6 +767,7 @@ void initialize_profiles(float minr, float maxr, float dr, float ellmin, float e
     Ksz= new double [nrads];
     rr= new double [nrads];
     k= new float [nrads];
+    clumpf = new float [nrads];
 
     for (i=0;i<nrads;i++) {
         x[i] = minr + (float)i*dr; //in Mpc
@@ -802,6 +803,7 @@ void clear_profiles() {
     delete[] rr;
     delete[] Tsz;
     delete[] Ksz;
+    delete[] clumpf;
 }
 
 double* get_ell() {
@@ -823,6 +825,7 @@ double* get_T(){ return &Tsz[0];}
 double* get_rhogas(){ return &rhogas[0];}
 double* get_K() {  return &Ksz[0]; }
 double* get_xx(){ return &rr[0]; }
+double* get_clumpf(){ return &clumpf[0]; }
 
 double* calc_3d_sz_profile(float R500) {
     float units = mpc*sigma_T/me_csq;

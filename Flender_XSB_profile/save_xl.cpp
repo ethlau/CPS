@@ -66,6 +66,13 @@ struct Flender_param{
   double x_break; // fiducial : 0.195
   double x_smooth; // fiducial : 0.01
   double n_nt_mod; // fiducial : 0.80
+
+  double clump0;
+  double clump_zslope;
+  double x_clump;
+  double alpha_clump1;
+  double alpha_clump2;
+
 };
 
 static struct Flender_param F;
@@ -150,9 +157,12 @@ int main(int argc, char *argv[]){
   set_halo_conc_DK15(inputPk, Omega_M, Omega_b, wt, H0/100., ns);
 	
   /* Flender et al paramaters */
-  fscanf(fin, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n", 
+  fscanf(fin, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf \n", 
 	 &F.alpha0, &F.n_nt, &F.beta, &F.eps_f, &F.eps_DM, &F.f_star, &F.S_star, &F.A_C, 
-	 &F.gamma_mod0, &F.gamma_mod_zslope, &F.x_break, &F.x_smooth, &F.n_nt_mod);
+	 &F.gamma_mod0, &F.gamma_mod_zslope, &F.x_break, &F.x_smooth, &F.n_nt_mod,
+
+	 &F.clump0, &F.clump_zslope, &F.x_clump, &F.alpha_clump1, &F.alpha_clump2);
+
 	
   int nzbin;
   float zmin, zmax;
@@ -347,6 +357,12 @@ double calc_Flender_xray_lum (cosmo cosm_model, float z, float Mvir, std::vector
   float x_break = F.x_break;
   float x_smooth = F.x_smooth;
 
+  float clump0 = F.clump0;
+  float clump_zslope = F.clump_zslope;
+  float x_clump = F.x_clump;
+  float alpha_clump1 = F.alpha_clump1;
+  float alpha_clump2 = F.alpha_clump2;
+
   int pturbrad = 2;
   bool verbose = false;
   float Rvir, M500, R500, Rscale, conc, cosmic_t, cosmic_t0;
@@ -419,10 +435,17 @@ double calc_Flender_xray_lum (cosmo cosm_model, float z, float Mvir, std::vector
     if(r >= Rmax){
         emi = 0.0;
     } else{
-        double ngas,pressure, kT;
+        double ngas,pressure, kT, clump, clump1;
         pressure = icm_mod.returnPth_mod2(r, R500, x_break, npoly_mod, x_smooth); //keV cm^-3
         ngas = icm_mod.return_ngas_mod(r, R500, x_break, npoly_mod); //cm^-3
         kT = pressure/ngas; // keV
+    
+        clump1 = icm_mod.return_clumpf(r, R500, clump0, x_clump, alpha_clump1, alpha_clump2) - 1.0;
+        clump1 *= pow(1.+Redshift, clump_zslope);
+        clump = 1.0 + clump1;
+        if (clump < 1.0) clump = 1.0;
+        ngas *= sqrt(clump);
+
         emi = icm_mod.return_xray_emissivity(ngas, kT, Redshift); // ergs/s/cm^3
         //emi = icm_mod.calc_xray_emissivity(r, R500, Redshift); // ergs/s/cm^3
         dlum = emi * dvol[xi]; // ergs/s
@@ -458,6 +481,11 @@ std::vector<double> calc_Flender_xray_emissivity_profile(cosmo cosm_model, float
   float gamma_mod_zslope = F.gamma_mod_zslope;
   float x_break = F.x_break;
   float x_smooth = F.x_smooth;
+  float clump0 = F.clump0;
+  float clump_zslope = F.clump_zslope;
+  float x_clump = F.x_clump;
+  float alpha_clump1 = F.alpha_clump1;
+  float alpha_clump2 = F.alpha_clump2;
 
   int pturbrad = 2;
   bool verbose = false;
@@ -518,12 +546,17 @@ std::vector<double> calc_Flender_xray_emissivity_profile(cosmo cosm_model, float
     r = (double) x[xi]*R500; // in Mpc
     if(r >= Rmax){emi = 0.0;}
     else{
-        double ngas,pressure, kT;
+        double ngas,pressure, kT, clump, clump1;
         pressure = icm_mod.returnPth_mod2(r, R500, x_break, npoly_mod, x_smooth); //keV cm^-3
-        //pressure = icm_mod.calc_gas_pressure(r, R500); //keV cm^-3
         ngas = icm_mod.return_ngas_mod(r, R500, x_break, npoly_mod); //cm^-3
-        // ngas = icm_mod.calc_gas_num_density(r, R500); //cm^-3
         kT = pressure/ngas; // keV
+    
+        clump1 = icm_mod.return_clumpf(r, R500, clump0, x_clump, alpha_clump1, alpha_clump2) - 1.0;
+        clump1 *= pow(1.+Redshift, clump_zslope);
+        clump = 1.0 + clump1;
+        if (clump < 1.0) clump = 1.0;
+        ngas *= sqrt(clump);
+
         emi = icm_mod.return_xray_emissivity(ngas, kT, Redshift); // ergs/s/cm^3
         //printf("r, pressure, kT, ngas, emi = %f, %e, %e, %e, %e\n", r, pressure, kT, ngas, emi);
     } 		

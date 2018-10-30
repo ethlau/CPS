@@ -481,6 +481,7 @@ std::vector<double> calc_Flender_xray_emissivity_profile(cosmo cosm_model, float
   float gamma_mod_zslope = F.gamma_mod_zslope;
   float x_break = F.x_break;
   float x_smooth = F.x_smooth;
+
   float clump0 = F.clump0;
   float clump_zslope = F.clump_zslope;
   float x_clump = F.x_clump;
@@ -536,7 +537,7 @@ std::vector<double> calc_Flender_xray_emissivity_profile(cosmo cosm_model, float
   double r, emi;
   std::vector<double> emission;
 
-  double fac = 4.0*M_PI*pow((1.0+Redshift),4.0); // in steradians
+  double fac = 4.0*M_PI; // in steradians
 
   float npoly_mod, gamma_mod;
   gamma_mod = gamma_mod0 * pow((1.0+Redshift),gamma_mod_zslope);
@@ -562,7 +563,7 @@ std::vector<double> calc_Flender_xray_emissivity_profile(cosmo cosm_model, float
     } 		
     //if(emi < 1e-50){emi = 0.0;}
 		
-    emi = emi/fac; // ergs/s/cm^3/str
+    emi = emi/fac/pow((1.0+Redshift),4.0); // ergs/s/cm^3/str
 		
     //cout << r << " " << emi <<endl;`
 		

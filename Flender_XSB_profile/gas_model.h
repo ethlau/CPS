@@ -65,6 +65,7 @@ double yfft_func(double x, void * p);
 double kappa_integrant(double x, void* p);
 double mgas500_func(double x, void * p);
 double mgas500_func_mod(double x, void * p);
+double mgas500_func_mod_clumped(double x, void * p);
 double arnaud_func_k(double x, void * p);
 double yfft_func_k(double x, void * p);
 double proj_KS02_func(double x, void * p);
@@ -95,6 +96,7 @@ friend double arnaud_func(double x, void * p);
 friend double proj_arnaud_func(double x, void * p);
 friend double mgas500_func(double x, void * p);
 friend double mgas500_func_mod(double x, void * p);
+friend double mgas500_func_mod_clumped(double x, void * p);
 friend double yfft_func_k(double x, void * p);
 friend double gasproj_func(double x, void * p);
 friend double gasproj_func_mod(double x, void * p);
@@ -111,8 +113,10 @@ protected:
     double Aprime, Bprime;
     float *x, *k, Tau_d, Tau_b, bulge_frac;
     double *ysz, *fft_ysz, *ell;
-    double *rhogas, *rr, *Tsz, *Ksz;
+    double *rhogas, *rr, *Tsz, *Ksz, *clumpf;
     int nrads, nell;
+
+    double clump0, alpha_clump1, alpha_clump2, x_clump;
 
 public:
 
@@ -767,7 +771,7 @@ void initialize_profiles(float minr, float maxr, float dr, float ellmin, float e
     Ksz= new double [nrads];
     rr= new double [nrads];
     k= new float [nrads];
-    clumpf = new float [nrads];
+    clumpf = new double [nrads];
 
     for (i=0;i<nrads;i++) {
         x[i] = minr + (float)i*dr; //in Mpc
@@ -925,6 +929,49 @@ double calc_gas_num_density(double r, float R500){
     return ngas;
 }
 
+double calc_clumped_gas_density(double r, float R500){
+
+    double xx, rhogas;
+    double xb, clump;
+
+    xx = r/(1000.0*ri/mpc); //r in Mpc, ri in km!, xx is r/ri 
+    xb = x_clump * R500; //x_clump in R500, xb in units of Mpc (same as r)
+
+    rhogas = rho0*pow(theta(xx,final_beta), n)/pow(mpc,3)/1.e3*m_sun; // g/cm^3
+    
+    if ( r < x_clump ) {
+        clump = 1.0 + clump0*pow (r/xb, alpha_clump1);
+    } 
+    else {
+        clump = 1.0 + clump0*pow (r/xb, alpha_clump2);
+    }
+    if ( clump < 1.0 ) clump = 1.0;
+
+    rhogas *= sqrt(clump);
+
+    return rhogas;
+
+}
+
+double calc_clumped_gas_num_density(double r, float R500){
+    double xx, ngas;
+    xx = r/(1000.0*ri/mpc);
+    ngas = rho0*pow(theta(xx,final_beta), n)/m_p/mmw/pow(mpc,3)/1.e6*m_sun; // cm^-3
+
+    double clump;
+    double xb = x_clump * R500; //x_clump in R500, xb in units of Mpc (same as r)
+
+    if ( r < x_clump ) {
+        clump = 1.0 + clump0*pow (r/xb, alpha_clump1);
+    } else {
+        clump = 1.0 + clump0*pow (r/xb, alpha_clump2);
+    }
+    if ( clump < 1.0 ) clump = 1.0;
+    ngas *= sqrt(clump);
+
+    return ngas;
+}
+
 double calc_gas_temperature(double r, float R500){
     double xx, T;
 
@@ -1064,6 +1111,27 @@ double* calc_gas_profile(double rcutoff, double xin, double xfinal, int xbinnum,
     return &rhogas[0];
 }
 
+double* calc_clumpf_profile(double rcutoff, double xin, double xfinal, int xbinnum, float R500) {
+    double xx, delx;
+    int i;
+    xin= xin*rcutoff*radius;
+    xfinal= xfinal*rcutoff*radius;
+    delx= log(xfinal/xin)/(xbinnum-1);
+
+    double xb = x_clump * R500; // xb in Mpc
+
+    for (i=0;i<xbinnum;i++) {
+        xx = (double)pow(2.7183, log(xin)+i*delx); // xx in Mpc;
+        if ( xx < xb ) {
+            clumpf[i] = 1.0 + (double)clump0*pow (xx/xb, alpha_clump1);
+        } else {
+            clumpf[i] = 1.0 + (double)clump0+pow (xx/xb, alpha_clump2);
+        }
+    }
+    return &clumpf[0];
+}
+
+
 double return_ngas(float r){
     double xx = (double)r/(1000.0*ri/mpc); // distance from center in units of scale radius
     double rho_gas = rho0*pow(theta(xx,final_beta), n); //Msol/Mpc^3
@@ -1090,6 +1158,20 @@ double return_ngas_mod(float r, float R500, float x_break, float npoly_mod){
     return n_gas;
 }
 
+double return_clumpf ( float r, float R500, float clump0, float x_clump, float alpha_clump1, float alpha_clump2 ) {
+
+    double clumpf, xb;
+    xb = x_clump * R500;
+
+    if (r  < xb ) {
+        clumpf = 1. + clump0*pow(r/xb, alpha_clump1) ;
+    } else {
+        clumpf = 1. + clump0*pow(r/xb, alpha_clump1) ;
+    }
+    
+    return clumpf;
+}
+
 double returnPth(float r, float R500){
     // returns thermal pressure at distance r/Mpc, in keV/cm^3
     // for electron pressure muliply this with mmw/mu_e
@@ -1100,7 +1182,6 @@ double returnPth(float r, float R500){
     return thisP;
 
 }
-
 
 double returnP_mod(float r, float R500, float x_break, float npoly_mod, float nnt_mod){
     // returns *total* pressure at distance r/Mpc, in keV/cm^3
@@ -1878,12 +1959,35 @@ double calc_mgas500_mod(float R500, float x_break, float npoly_break) {
     return mgas500;
 }
 
+double calc_mgas500_mod_clumped(float R500, float x_break, float npoly_break, float x_clump, float alpha_clump1, float alpha_clump2, float clump0) {
+    // R500 has to be in Mpc, x_break in units of R500
+    double units = rho0*4.0*PI*pow(1000.0*ri/mpc,3);
+    double NFW_Rs_Mpc = (1000.0*ri/mpc);
+    double mgas500;
+    gsl_integration_workspace * w = gsl_integration_workspace_alloc (10000);
+    double result, error;
+    double pt = 2.0;
+    double params[12] = {delta_rel, n, C, final_beta, f_s, pt, x_break*R500/NFW_Rs_Mpc, npoly_break,x_clump*R500/NFW_Rs_Mpc, alpha_clump1, alpha_clump2, clump0};
+    gsl_function F;
+    int i;
+    F.function = &mgas500_func_mod_clumped;
+    F.params = &params;
+    gsl_integration_qags (&F, 0.0, R500/NFW_Rs_Mpc, 0, 1e-7, 10000, w, &result, &error);
+    mgas500 = (double) units*result;
+    gsl_integration_workspace_free (w);
+    return mgas500;
+}
+
 double return_fgas500(float M500, float R500){
     return calc_mgas500(R500)/M500;
 }
 
 double return_fgas500_mod(float M500, float R500, float x_break, float npoly_break){
     return calc_mgas500_mod(R500, x_break, npoly_break)/M500;
+}
+
+double return_fgas500_mod_clumped(float M500, float R500, float x_break, float npoly_break, float x_clump, float alpha_clump1, float alpha_clump2, float clump0){
+    return calc_mgas500_mod_clumped(R500, x_break, npoly_break,x_clump, alpha_clump1, alpha_clump2, clump0 )/M500;
 }
 
 double calc_mgas2500(float R2500) { // R500 has to be in Mpc

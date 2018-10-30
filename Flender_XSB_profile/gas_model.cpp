@@ -321,6 +321,47 @@ double mgas500_func_mod(double x, void * p) {
   return y;
 }
 
+double mgas500_func_mod_clumped(double x, void * p) {
+    // this is using the broken power-law model
+    double *params = (double *) p;
+    float n = (float)params[1];
+    float C = (float)params[2];
+    float delta_rel = (float)params[0];
+    //float f_s = (float)params[4];
+    double beta = params[3];
+    //double R = params[4];
+    int pturbrad = (int)(params[5]);
+    float x_break_div_ri = params[6]; // breaking point in units of NFW scale radius
+    float npoly_prime = params[7];
+
+    float x_clump = params[8];
+    float alpha_clump1 = params[9];
+    float alpha_clump2 = params[10];
+    float clump0 = params[11];
+
+    gas_model gmod(0.0, n, C, 0.0, 0.0, 0.0, pturbrad, 0.0);
+    double y;
+    if(x>x_break_div_ri){
+        y = pow(gmod.theta(x,beta),gmod.n)*x*x;
+    }
+    else if(x<=x_break_div_ri){
+        y = pow(gmod.theta_mod(x,beta,x_break_div_ri,npoly_prime),npoly_prime)*x*x;
+        y *= pow(gmod.theta(x_break_div_ri,beta),gmod.n) / pow(gmod.theta_mod(x_break_div_ri,beta,x_break_div_ri,npoly_prime),npoly_prime); // normalize at break
+    }
+
+    double clump;
+    if(x<x_clump){
+        clump = 1.0 + clump0 * pow (x/x_clump, alpha_clump1);
+    } else{
+        clump = 1.0 + clump0 * pow (x/x_clump, alpha_clump2);
+    }
+    if (clump < 0) clump = 1.0;
+
+    y *= sqrt(clump);
+
+    return y;
+}
+
 
 
 double gasproj_func(double x, void * p) {
